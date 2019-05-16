@@ -1,0 +1,16 @@
+{
+	"username": "USERNAME",
+	"password": "PASSWORD",
+	"accounts": [
+		"ACCOUNT",
+		"ACCOUNT",
+		"ACCOUNT",
+		"ACCOUNT",
+		"ACCOUNT"
+	],
+	"followLimit": 500,
+	"blacklist": "blacklist.txt",
+	"blacklistlistAll": false,
+	"delay": 20,
+	"width": 50
+}
