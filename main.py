@@ -20,6 +20,8 @@ username = config['username']
 password = config['password']
 accounts = config['accounts']
 follow_limit = config['followLimit']
+follow_private = config['followPrivate']
+follow_anon = config['followAnon']
 blacklist = config['blacklist']
 blacklist_all = config['blacklistlistAll']
 delay = config['delay']
@@ -61,24 +63,24 @@ def smart_sleep(delay):
 			sleep(1)
 		center('Sleeping for {} seconds complete!'.format(str(delay)))
 
-def gather_followers(username, count):
+def gather_followers(account, count):
 	followers = []
 	try:
 		blockPrint()
-		api.searchUsername(username)
+		api.searchUsername(account)
 		api_result = api.LastJson
 		user_id = api_result['user']['pk']
 		enablePrint()
 	except KeyError:
 		if api_result['message'] == 'User not found':
-			center('Unable to find @{} on Instagram.'.format(username))
+			center('Unable to find @{} on Instagram.'.format(account))
 			return followers
 		else:
 			center('Please increase delay in config.json before proceeding.')
 			quit()
 	with open(blacklist, 'r') as myfile:
 		already_followed = myfile.read().splitlines()
-	center('Gathering followers from @{}...'.format(username))
+	center('Gathering followers from @{}...'.format(account))
 	center(' ')
 	next_max_id = True
 	while next_max_id and len(followers) < count:
@@ -87,42 +89,50 @@ def gather_followers(username, count):
 		api.getUserFollowers(user_id, maxid=next_max_id)
 		api_request = api.LastJson
 		old_len = len(followers)
-		followers.extend([(item['pk'], item['username']) for item in api_request.get('users', [])])
+		followers.extend([(item['pk'], item['username'], item['is_private'], item['has_anonymous_profile_picture']) for item in api_request.get('users', [])])
 		next_max_id = api_request.get('next_max_id', '')
 		followers = [item for item in followers if str(item[0]) not in already_followed]
-		center('Gathered {} followers!!'.format(str(len(followers) - old_len)))
+		if not follow_private:
+			followers = [item for item in followers if not item[2]]
+		if not follow_anon:
+			followers = [item for item in followers if not item[3]]
+		followers = followers[:count]
+		if len(followers) - old_len == 1:
+			center('Gathered 1 follower!!')
+		else:
+			center('Gathered {} followers!!'.format(str(len(followers) - old_len)))
 		if next_max_id and len(followers) < count:
 			smart_sleep(delay)
 		center(' ')
 	if len(followers) == 1:
-		center('Successfully gathered {} follower in total!!'.format(len(followers)))
+		center('Successfully gathered 1 follower in total!!')
 	else:
 		center('Successfully gathered {} followers in total!!'.format(len(followers)))
-	return followers[:count]
+	return followers
 
 def follow(to_follow):
 	count = 0
 	if len(to_follow) == 1:
-		center('{} user to follow...'.format(str(len(to_follow))))
+		center('1 user to follow...')
 	else:
 		center('{} users to follow...'.format(str(len(to_follow))))
 	center(' ')
 	for item in to_follow:
 		api.follow(item[0])
 		if api.LastJson['friendship_status']['following']:
-			center('Successfully followed @{}!!'.format(item[1]))
+			count += 1
+			center('Successfully followed @{}!! [{}/{}]'.format(item[1], str(count), str(follow_limit)))
 			with open(blacklist, 'a') as myfile:
 				myfile.write('\n{}'.format(str(item[0])))
-			count += 1
 		else:
-			center('Follow request sent to @{}!!'.format(item[1]))
+			count += 1
+			center('Follow request sent to @{}!! [{}/{}]'.format(item[1], str(count), str(follow_limit)))
 			with open(blacklist, 'a') as myfile:
 				myfile.write('\n{}'.format(str(item[0])))
-			count += 1
 		smart_sleep(delay)
 		center(' ')
 	if count == 1:
-		center('Successfully followed {} user!!'.format(str(count)))
+		center('Successfully followed 1 user!!')
 	else:
 		center('Successfully followed {} users!!'.format(str(count)))
 
@@ -139,13 +149,14 @@ if(api.login()):
 		with open(blacklist, 'w') as myfile:
 			myfile.write('\n'.join([str(user_id) for user_id in following]))
 		if len(following) == 1:
-			center('Successfully added {} user to {}!!'.format(str(len(following)), blacklist))
+			center('Successfully added 1 user to {}!!'.format(blacklist))
 		else:
 			center('Successfully added {} users to {}!!'.format(str(len(following)), blacklist))
 		quit()
 	to_follow = []
-	for username in accounts:
-		for item in gather_followers(username, int(math.ceil(follow_limit / len(accounts)))):
+	count = follow_limit
+	for account in accounts:
+		for item in gather_followers(account, int(math.ceil((count - len(to_follow)) / len(accounts)))):
 			to_follow.append(item)
 	header()
 	if to_follow:

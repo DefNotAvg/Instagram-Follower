@@ -9,6 +9,8 @@
 		"ACCOUNT"
 	],
 	"followLimit": 500,
+	"followPrivate": false,
+	"followAnon": false,
 	"blacklist": "blacklist.txt",
 	"blacklistlistAll": false,
 	"delay": 20,
