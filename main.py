@@ -155,8 +155,8 @@ if(api.login()):
 		quit()
 	to_follow = []
 	count = follow_limit
-	for account in accounts:
-		for item in gather_followers(account, int(math.ceil((count - len(to_follow)) / len(accounts)))):
+	for i in range(0, len(accounts)):
+		for item in gather_followers(accounts[i], int(math.ceil((count - len(to_follow)) / (len(accounts) - i)))):
 			to_follow.append(item)
 	header()
 	if to_follow:
